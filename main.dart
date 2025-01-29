@@ -1,21 +1,25 @@
 import 'yooz/yooz.dart';
 
+void main(){
+    final parser = Parser();
+    
+    String patternString = '''
 
-void main() {
-  var yooz = new YouzParser();
+    #msg:Im yooz bot.
 
-  String inputCode = '''
-(
-+ دارت چیه؟
-- دارت یه زبان فوق العاده است  ـ  دارت مال گوگله
-)
-''';
+    { [0.7] Hi > yooz }
+    
+    (    
+        + Hi yooz
+        - #msg
+    )
+    
+    ''';
+    
+    parser.TextError = "I don't understand";
+    
+    parser.loadPatterns(patternString);
+    
+    print(parser.parse("Hi"));
 
-
-  const Message = "دارت چیه؟";
-
-  yooz.parse(inputCode);
-
-  final response = yooz.getResponse(Message);
-  print(response);
 }
