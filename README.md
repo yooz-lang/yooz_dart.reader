@@ -21,10 +21,13 @@
 
 ### نحوه استفاده
 
-#### 1. نصب
+#### 1. نصب و استفاده
 ```bash
-dart pub add  yooz_reader
+git clone https://github.com/yooz-lang/yooz_dart.reader
+cd yooz_dart.reader
+dart main.dart
 ```
+
 
 #### 2. نمونه کد
 ```dart
@@ -42,7 +45,8 @@ void main(){
     ''';
     
     parser.TextError = "متاسفانه متوجه نشدم";
-    
+    parser.lastMessage = 'کمک دیگه ای از دستم بر میاد؟';
+
     parser.loadPatterns(patternString);
     
     print(parser.parse("متن ورودی"));
@@ -102,6 +106,7 @@ void main(){
     ''';
     
     parser.TextError = "I don't understand";
+    parser.lastMessage = 'Do you have any other questions?';
     
     parser.loadPatterns(patternString);
     
