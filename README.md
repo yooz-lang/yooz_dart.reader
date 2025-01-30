@@ -60,7 +60,6 @@ void main(){
 - **جایگزینی:** `{ کلمه1، کلمه2 } -> { جایگزین1، جایگزین2 }`
 - **قوانین:** `{ [0.5] شرط > پاسخ }`
 - **کلمات توقف:** `- { کلمه1، کلمه2 }`
-- **متغیرها:** `=نام: مقدار`
 
 ---
 
@@ -87,7 +86,9 @@ void main(){
 
 #### 1. Installation
 ```bash
-dart pub add  yooz_reader
+git clone https://github.com/yooz-lang/yooz_dart.reader
+cd yooz_dart.reader
+dart main.dart
 ```
 
 #### 2. Example Code
@@ -121,4 +122,3 @@ void main(){
 - **Replacements:** `{ word1, word2 } -> { replacement1, replacement2 }`
 - **Rules:** `{ [0.5] condition > response }`
 - **Stop words:** `- { word1, word2 }`
-- **Variables:** `=name: value`
