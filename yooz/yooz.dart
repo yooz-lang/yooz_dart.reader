@@ -1,37 +1,34 @@
 library yooz;
+
 import 'dart:math';
 import 'createRegex.dart';
 
 class Parser {
-  final List<Map<String, dynamic>> _patterns = [];
-  final Map _patternsif = {};
+  List<Map> _patterns = [];
+  Map _patternsif = {};
   List _if_idf  = [];
-  final Map<String, String> _variables = {}; 
-  final Random _random = Random();
-  List _spantext = []; 
-  String _Subject = ''; 
-  String _Subjectname = '';
-  String lastMessage = ''; 
-  String TextError = 'متاسفم، نمی‌توانم پاسخ دهم.'; 
-  List _pronouns = [];
-  List _Verbs = []; 
-  bool _Bpronouns = false;
-  bool _bVerbs = false;
-  Map _fixanswer = {}; 
-  final List<Map> _addtonextword = [];
+  Map<String, String> _variables = {}; // save variables
+  Random _random = Random();
+  List _spantext = []; // spam text for delete in input
+  Map<String, String> _subject = {}; // subject key and value
+  Map _Category = {};
+  List _TCategory = [];
+  bool _BCategory = false;
+  String lastMessage = "\n"; // text for last message 
+  String TextError = 'متاسفم، نمی‌توانم پاسخ دهم.'; // text Error
+  Map _fixanswer = {};
+  List<Map> _addtonextword = []; // add text in end text
   bool _IF = false;
   bool _Trueif = false;
   bool _Trueelse = false;
   bool _Trueelseif = false;
-  bool _textg = false;
 
   void loadPatterns(String patternString) {
     final lines = patternString.split('\n');
     String? currentPattern;
     List<String>? currentResponses;
     for (var line in lines) {
-      line = line.trim();
-
+      line = line.trim().toLowerCase();
       if (line.startsWith('!') || line.startsWith('[') && line.contains(']') && line.contains(':')) {
 
         // add in if
@@ -45,7 +42,8 @@ class Parser {
         if (line.contains('!') && line.contains('[')) {
           _Trueelseif = true;
           _patternsif.addAll({'add-else-if':line.replaceAll('[', '').replaceAll(']', '').replaceAll(':', '').replaceAll('!', '').split('>')[1].split(' ')[1]});
-          
+        }else{
+          _patternsif.addAll({'add-else-if':"9999199"});
         }
       }
 
@@ -54,7 +52,6 @@ class Parser {
 
       // The next word method
       if(line.contains('[') && line.contains(']') && line.contains('{') && line.contains('}')){
-        // final RegExp regex = RegExp(r'\{(.*?)\}');
         final matches = RegExp(r'\{(.*?)\}').allMatches(line);
         List<Map<String, String>> results = [];
         for (var match in matches) {
@@ -94,53 +91,62 @@ class Parser {
 
       // The subject save method
       if (line.startsWith('=') && line.contains(':')) {
-        final parts = line.substring(1).split(':');
+        List parts = line.substring(1).split(':');
         if (parts.length == 2) {
-          _Subject = parts[1].trim();
+           _subject[parts[0].trim()] = parts[1].trim();
         }
+         
+      
       }
 
       // Text method after each answer
-      if (line.startsWith('+') && line.contains('(') && line.contains(')')) lastMessage = line.replaceAll('(', '').replaceAll(')', '').replaceAll('+', '').trim();
+      if (line.startsWith('+') && line.contains('(') && line.contains(')')) lastMessage = lastMessage+line.replaceAll('(', '').replaceAll(')', '').replaceAll('+', '').trim();
 
-      if (!line.startsWith('-') && line.endsWith('}') && line.contains('{')) {
-        if (line.startsWith('ضمایر')) {
-          final parts = line.split('{');
-          final key = parts[0].trim();
-          final valuesString = parts[1].replaceAll('}', '').trim();
-          final values = valuesString.split('،').map((s) => s.trim()).toList();
-          if (key == 'ضمایر') {
-            _Bpronouns = true;
-            _pronouns.addAll(values);
-          } else if (line.startsWith('افعال')) {
-            final parts = line.split('{');
-            final key = parts[0].trim();
-            final valuesString = parts[1].replaceAll('}', '').trim();
-            final values =
-                valuesString.split('،').map((s) => s.trim()).toList();
-            if (key == 'افعال') {
-              _bVerbs = true;
-              _Verbs.addAll(values);
-            }
-          }
+      // Category
+      if (!line.startsWith('-') && !line.startsWith('{') && !line.startsWith('+') && !line.startsWith('&') && !line.startsWith('#') && !line.startsWith('*') && line.endsWith('}') && line.contains('{')) {
+        line = line.replaceAll('}', "");
+        _BCategory = true;
+        if (line.contains(',')) {
+          _Category[line.split('{')[0].trim()] = line.split('{')[1].split(',');
+        }else if(line.contains('،')){
+          _Category[line.split('{')[0].trim()] = line.split('{')[1].split('،');
         }
+        
+
       }
 
       // Save questions
       if (line.startsWith('+')) {
-        if (currentPattern != null && currentResponses != null) {
-          _patterns
-              .add({'pattern': currentPattern, 'responses': currentResponses});
-        }
         currentPattern = line.substring(1).trim();
         currentResponses = [];
       }
+
+      if (line.contains('&')) {
+          for (var element in _Category.keys) {
+            // print(element);
+            if (element.toString().trim() == line.split('&')[1].trim().toString()) {
+              for (var element1 in _Category[element]) {
+                _TCategory.add(element1.toString().trim());
+              }
+            }
+          }
+      }
+
       if (line.contains('}') && line.contains('{')) {
         if (line.contains(',')) {
           var line1 = line.substring(1).trim().replaceAll('{', '').replaceAll('}', '').split(',');
           for (var tt in line1) {
            _if_idf.add(tt);
           }
+        }else if(line.contains('،')){
+          var line1 = line.substring(1).trim().replaceAll('{', '').replaceAll('}', '').split(',');
+            for (var tt in line1) {
+               _if_idf.add(tt);
+            }
+        }
+        if (currentPattern != null && currentResponses != null) {
+          _patterns
+              .add({'pattern': currentPattern, 'responses': currentResponses});
         }
       }
 
@@ -156,21 +162,36 @@ class Parser {
            _patternsif.addAll({'text-else':line.substring(1).trim()});
           _Trueelse = false;
         }
-        if (line.contains(_Subjectname)) {
-          line = line.replaceAll('=', '').replaceAll('موضوع', _Subject);
+
+        if (line.contains('=')) {            
+            Iterable<Match> matches = RegExp(r"=\s*(\w+)").allMatches(line.substring(1).trim());
+            for (Match match in matches) {
+              String word = match.group(1)!;
+              if (_subject.containsKey(word)) {
+                currentResponses?.add(line.substring(1).trim().replaceAll(match.group(0)!, _subject[word]!));
+              }
+            }
         }
 
-        Iterable<Match> matches = RegExp(r'#\w+').allMatches(line);
-        for (var rr in matches) {
-            if (_variables.containsKey(rr.group(0)?.replaceAll('#', ''))) {
-              currentResponses?.add(line.substring(1).trim().replaceAll(rr.group(0)!, _variables[rr.group(0)?.replaceAll('#', '')]!));
+        if (_BCategory) {
+          for (var element in _TCategory) {
+            _patterns.add({'pattern': currentPattern!.replaceAll('&'+currentPattern.split('&')[1].trim(), element), 'responses': [line.substring(1).trim()]});
             }
+        }
+
+        if (line.contains('#')) {
+          Iterable<Match> matches = RegExp(r'#\w+').allMatches(line);
+          for (var rr in matches) {
+              if (_variables.containsKey(rr.group(0)?.replaceAll('#', ''))) {
+                currentResponses?.add(line.substring(1).trim().replaceAll(rr.group(0)!, _variables[rr.group(0)?.replaceAll('#', '')]!));
+              }
+          }
         }
           var responses =
             line.substring(1).trim().split('_').map((s) => s.trim()).toList();
             currentResponses?.addAll(responses);
       }
-    }
+    } 
 
     if (currentPattern != null && _IF == true) {
       _patterns.add({'pattern': currentPattern, 'responses': _patternsif});
@@ -183,10 +204,16 @@ class Parser {
         _patterns.add({'pattern': currentPattern, 'responses': currentResponses});
       }
     }
-
   }
 
   String parse(String input) {
+    // The method of removing adjectives
+    if (_spantext.isNotEmpty) {
+      for (var word in _spantext) {
+        input = input.replaceAll(word.trim(), '').trim();
+      }
+    }
+
     // check and change text in input
     for (var fix in input.split(' ')) {
       if (_fixanswer.containsKey(fix)) {
@@ -201,24 +228,8 @@ class Parser {
      }
     }
 
-    // The method of removing adjectives
-    for (var word in _spantext) {
-      input = input.replaceAll(RegExp('\\b${RegExp.escape(word)}\\b'), '');
-    }
 
-    // Examining pronouns
-    if (_bVerbs || _Bpronouns) {
-      for (var pronoun in _pronouns) {
-        if (input.contains(pronoun)) {
-          return 'شما از ضمایر استفاده کردین\n' + lastMessage;
-        }
-      }
-      for (var verbs in _Verbs) {
-        if (input.contains(verbs)) {
-          return 'شما از افعال استفاده کردین\n' + lastMessage;
-        }
-      }
-    }
+    
 
     // if else
     if (_IF == true) {
@@ -227,9 +238,9 @@ class Parser {
       for (var number in numbers) {
         num aif = num.parse(_patternsif['add-if']);
         num aelseif = num.parse(_patternsif['add-else-if']);
-        if(number > aif){
+        if(number > aif && aif != null){
           return _patternsif['text-if'] + "\n" + lastMessage;
-        }else if(number > aelseif){
+        }else if(number > aelseif && aelseif != "9999199"){
           return _patternsif['text-else-if'] + "\n" + lastMessage ;
         }else{
           return _patternsif['text-else'] + "\n" + lastMessage;
@@ -271,6 +282,11 @@ class Parser {
         }
       }
     }
-    return generatedResponse + "\n" + lastMessage;
+    if (lastMessage == "\n") {
+      return generatedResponse;
+    }else{
+      return generatedResponse + lastMessage;
+    }
+    
   }
 }
