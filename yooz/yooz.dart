@@ -5,10 +5,9 @@ import 'createRegex.dart';
 
 class Parser {
   List<Map> _patterns = [];
-  Map _patternsif = {};
-  List _if_idf  = [];
+  List _if_idf  = []; // --> {iran, tehran}
   Map<String, String> _variables = {}; // save variables
-  Random _random = Random();
+  // Random _random = Random();
   List _spantext = []; // spam text for delete in input
   Map<String, String> _subject = {}; // subject key and value
   Map _Category = {};
@@ -16,8 +15,9 @@ class Parser {
   bool _BCategory = false;
   String lastMessage = "\n"; // text for last message 
   String TextError = 'متاسفم، نمی‌توانم پاسخ دهم.'; // text Error
-  Map _fixanswer = {};
+  Map _fixanswer = {}; // edit and writing text
   List<Map> _addtonextword = []; // add text in end text
+  Map _patternsif = {};
   bool _IF = false;
   bool _Trueif = false;
   bool _Trueelse = false;
@@ -81,22 +81,22 @@ class Parser {
       }
 
       // The method of identifying the words of Asafa
-      if (line.startsWith('-') && line.contains('{') && line.contains('}'))  _spantext = line.replaceAll('}', '').replaceAll('{', '').replaceAll('-', '').trim().split(',');
+      if (line.startsWith('-') && line.contains('{') && line.contains('}')) {
+        _spantext = line.replaceAll('}', '').replaceAll('{', '').replaceAll('-', '').trim().split(',');
+      }
 
       // Fixed response method
       if (line.startsWith('{') && line.contains("}") && line.contains('->')) {
         var a = line.replaceAll('{', '').replaceAll('}', '').split('->');
-        _fixanswer[a[0]] = a[1];
+        _fixanswer[a[0].trim()] = a[1].trim();
       }
 
       // The subject save method
       if (line.startsWith('=') && line.contains(':')) {
         List parts = line.substring(1).split(':');
-        if (parts.length == 2) {
+        if (line.substring(1).split(':').length == 2) {
            _subject[parts[0].trim()] = parts[1].trim();
         }
-         
-      
       }
 
       // Text method after each answer
@@ -111,8 +111,6 @@ class Parser {
         }else if(line.contains('،')){
           _Category[line.split('{')[0].trim()] = line.split('{')[1].split('،');
         }
-        
-
       }
 
       // Save questions
@@ -123,7 +121,6 @@ class Parser {
 
       if (line.contains('&')) {
           for (var element in _Category.keys) {
-            // print(element);
             if (element.toString().trim() == line.split('&')[1].trim().toString()) {
               for (var element1 in _Category[element]) {
                 _TCategory.add(element1.toString().trim());
@@ -132,22 +129,16 @@ class Parser {
           }
       }
 
-      if (line.contains('}') && line.contains('{')) {
+      if (line.contains('}') && line.contains('{') && !line.startsWith('-')) {
+        List line1 = [];
         if (line.contains(',')) {
-          var line1 = line.substring(1).trim().replaceAll('{', '').replaceAll('}', '').split(',');
-          for (var tt in line1) {
-           _if_idf.add(tt);
-          }
+          line1 = line.substring(1).trim().replaceAll('{', '').replaceAll('}', '').split(',');
         }else if(line.contains('،')){
-          var line1 = line.substring(1).trim().replaceAll('{', '').replaceAll('}', '').split(',');
-            for (var tt in line1) {
-               _if_idf.add(tt);
+          line1 = line.substring(1).trim().replaceAll('{', '').replaceAll('}', '').split('،');
+        }
+        for (var tt in line1) {
+               _if_idf.add(tt.trim());
             }
-        }
-        if (currentPattern != null && currentResponses != null) {
-          _patterns
-              .add({'pattern': currentPattern, 'responses': currentResponses});
-        }
       }
 
       // Efficient and saved questions section
@@ -160,64 +151,73 @@ class Parser {
           _Trueelseif = false;
         }else if(_Trueelse == true){
            _patternsif.addAll({'text-else':line.substring(1).trim()});
-          _Trueelse = false;
+          _Trueelse = false;}
+        if (_IF == false && !line.contains('_') && !line.contains('#') && !line.contains('&') && !line.contains('=') && currentPattern != null && currentResponses != null && _if_idf.isEmpty) {
+        _patterns.add({'pattern': currentPattern, 'responses': [line.substring(1).trim()]});
+     }
+        if (line.contains('=')) {    
+          for (var element in _subject.keys) {
+            currentResponses?.add(line.substring(1).replaceAll('=$element', _subject[element]!).trim());
+            _patterns.add({'pattern': currentPattern, 'responses': currentResponses});
+          }
         }
-
-        if (line.contains('=')) {            
-            Iterable<Match> matches = RegExp(r"=\s*(\w+)").allMatches(line.substring(1).trim());
-            for (Match match in matches) {
-              String word = match.group(1)!;
-              if (_subject.containsKey(word)) {
-                currentResponses?.add(line.substring(1).trim().replaceAll(match.group(0)!, _subject[word]!));
-              }
-            }
-        }
-
         if (_BCategory) {
           for (var element in _TCategory) {
             _patterns.add({'pattern': currentPattern!.replaceAll('&'+currentPattern.split('&')[1].trim(), element), 'responses': [line.substring(1).trim()]});
             }
         }
-
+        if (_if_idf.isNotEmpty) {
+          for (var element in _if_idf) {
+            _patterns.add({'pattern': element.trim(), 'responses': [line.substring(1).trim()]});
+          }
+        }
         if (line.contains('#')) {
           Iterable<Match> matches = RegExp(r'#\w+').allMatches(line);
           for (var rr in matches) {
               if (_variables.containsKey(rr.group(0)?.replaceAll('#', ''))) {
                 currentResponses?.add(line.substring(1).trim().replaceAll(rr.group(0)!, _variables[rr.group(0)?.replaceAll('#', '')]!));
+                _patterns.add({'pattern': currentPattern, 'responses': currentResponses});
               }
           }
         }
+        if (line.contains('_')) {
           var responses =
             line.substring(1).trim().split('_').map((s) => s.trim()).toList();
             currentResponses?.addAll(responses);
+        }
       }
-    } 
-
+    }
+    
     if (currentPattern != null && _IF == true) {
       _patterns.add({'pattern': currentPattern, 'responses': _patternsif});
-    }else if (currentPattern != null && currentResponses != null) {
-      if (_if_idf.isNotEmpty) {
-        for (var ttt in _if_idf) {
-           _patterns.add({'pattern': ttt, 'responses': currentResponses});
-        }
-      }else{
-        _patterns.add({'pattern': currentPattern, 'responses': currentResponses});
-      }
     }
   }
 
   String parse(String input) {
     // The method of removing adjectives
     if (_spantext.isNotEmpty) {
+      List _textspam = [];
       for (var word in _spantext) {
-        input = input.replaceAll(word.trim(), '').trim();
+        for (var elementinput in input.split(' ')) {
+          for (var element in _spantext) {
+            if (element.trim() == elementinput.trim()) {
+              if (!_textspam.contains(element)) {
+                _textspam.add(element); 
+              }
+            }
+          }
+        }
+      }
+      for (var elementspam in _textspam) {
+        input = input.replaceAll(elementspam.trim(), '').trim();
+        input = input.replaceAll(RegExp(r'\s+'), ' ').trim();
       }
     }
 
     // check and change text in input
     for (var fix in input.split(' ')) {
       if (_fixanswer.containsKey(fix)) {
-        input = input.replaceAll(fix[0], fix[1]);
+        input = input.replaceAll(fix,_fixanswer.values.toString().replaceAll('(','').replaceAll(')','')).trim();
       }
     }
 
@@ -227,9 +227,6 @@ class Parser {
        input = input +' '+ Eadd['end'];
      }
     }
-
-
-    
 
     // if else
     if (_IF == true) {
@@ -250,7 +247,7 @@ class Parser {
       for (var entry in _patterns) {
         final pattern = entry['pattern'] as String;
         final responses = entry['responses'] as List<String>;
-
+  
         final regex = createRegex(pattern);
         final match = regex.firstMatch(input);
         if (match != null) {
@@ -263,14 +260,13 @@ class Parser {
 
   String _generateResponse(List<String> responses, RegExpMatch match) {
     // Choose a random answer
-    final response = responses[_random.nextInt(responses.length)];
+    final response = responses[Random().nextInt(responses.length)];
     String generatedResponse = response;
     for (var i = 0; i < match.groupCount; i++) {
       generatedResponse =
           generatedResponse.replaceAll('*', match.group(i + 1)!);
     }
-
-    if (generatedResponse.endsWith('!>')) {
+    if (generatedResponse.endsWith('!>') || generatedResponse.contains('!>')) {
       generatedResponse =
           generatedResponse.substring(0, generatedResponse.length - 2).trim();
       List<String> variableKey1 =
@@ -287,6 +283,5 @@ class Parser {
     }else{
       return generatedResponse + lastMessage;
     }
-    
   }
 }
