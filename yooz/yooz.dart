@@ -119,6 +119,13 @@ class Parser {
         currentResponses = [];
       }
 
+      if (line.contains('_')) {
+          var responses =
+            line.substring(1).trim().split('_').map((s) => s.trim()).toList();
+            currentResponses?.addAll(responses);
+        }
+      
+
       if (line.contains('&')) {
           for (var element in _Category.keys) {
             if (element.toString().trim() == line.split('&')[1].trim().toString()) {
@@ -180,16 +187,14 @@ class Parser {
               }
           }
         }
-        if (line.contains('_')) {
-          var responses =
-            line.substring(1).trim().split('_').map((s) => s.trim()).toList();
-            currentResponses?.addAll(responses);
-        }
+        
       }
     }
     
     if (currentPattern != null && _IF == true) {
       _patterns.add({'pattern': currentPattern, 'responses': _patternsif});
+    }else{
+      _patterns.add({'pattern': currentPattern, 'responses': currentResponses});
     }
   }
 
@@ -235,7 +240,7 @@ class Parser {
       for (var number in numbers) {
         num aif = num.parse(_patternsif['add-if']);
         num aelseif = num.parse(_patternsif['add-else-if']);
-        if(number > aif && aif != null){
+        if(number > aif){
           return _patternsif['text-if'] + "\n" + lastMessage;
         }else if(number > aelseif && aelseif != "9999199"){
           return _patternsif['text-else-if'] + "\n" + lastMessage ;
@@ -260,6 +265,7 @@ class Parser {
 
   String _generateResponse(List<String> responses, RegExpMatch match) {
     // Choose a random answer
+    print(responses);
     final response = responses[Random().nextInt(responses.length)];
     String generatedResponse = response;
     for (var i = 0; i < match.groupCount; i++) {
@@ -272,7 +278,7 @@ class Parser {
       List<String> variableKey1 =
           match.group(0)!.split(" ");
       for (var variableKey in variableKey1) {
-        if (variableKey != null && _variables.containsKey(variableKey)) {
+        if (_variables.containsKey(variableKey)) {
           generatedResponse +=
               " " + _variables[variableKey]!;
         }
